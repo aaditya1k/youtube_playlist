@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf8"/>
+</head>
+
+<div id="console" style="background-color: #f3f3f3;padding: 10px;border: 1px solid #777;"></div>
+
+<script>
+    const vc = document.getElementById("console");
+    // https://developers.google.com/youtube/v3/guides/auth/server-side-web-apps#httprest
+    vc.innerHTML += "Fetching data<br/>";
+
+    (async () => {
+        const request = await fetch("/oauth-values");
+        const values = await request.json();
+
+        const params = {
+            scope: values.scope,
+            access_type: "offline",
+            include_granted_scopes: "true",
+            redirect_uri: values.redirect_uri,
+            response_type: "code",
+            client_id: values.client_id,
+        };
+
+        const queryParams = [];
+        for (const p in params) {
+            queryParams.push(p + "=" + encodeURIComponent(params[p]));
+        }
+        vc.innerHTML += "Fetched values from server:<br/><pre>" + JSON.stringify(params, null , 2) + "</pre><br/>";
+        const oauthUrl = "https://accounts.google.com/o/oauth2/v2/auth?" + queryParams.join("&");
+
+        vc.innerHTML += `Click on the link to get oauth token: <br/><br/>
+            <a href="${oauthUrl}" target="_blank">${oauthUrl}</a>`;
+    })();
+</script>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf8"/>
+    <style>
+    body {
+        font-size: 15px;
+        font-family:Arial, Helvetica, sans-serif;
+    }
+    .view-panel {
+        clear: both;
+        margin-top: 10px;
+    }
+    #playlists {
+        float: left;
+        width: 30%;
+    }
+    #videos {
+        float: left;
+        width: 70%;
+    }
+    .video {
+        clear: both;
+        display: flex;
+        padding: 5px 20px;
+    }
+    .video::after, .view-panel::after, .playlist::after {
+        content: ' ';
+        clear: both;
+    }
+    .playlist {
+        clear: both;
+    }
+    .playlist .playlist-title {
+        float: left;
+        text-decoration: underline;
+        color: blue;
+        cursor: pointer;
+    }
+    .playlist .count {
+        float: left;
+        margin-left: 10px;
+    }
+
+    .video-img {
+        display: flex;
+    }
+    .video-data {
+        padding-left: 10px;
+        width: 100%;
+    }
+    .video-title {
+        font-weight: bold;
+        font-size: 16px;
+        padding-bottom: 6px;
+    }
+    .video-publisher {
+        padding-bottom: 5px;
+    }
+    .video-date {
+        font-size: 13px;
+        color: #666;
+    }
+    </style>
+</head>
+<body>
+
+<div id="action-panel">
+    <input type="text" id="playlists_folder" value="" placeholder="playlists_folder"/>
+    <input type="button" value="Fetch" id="fetch-playlists"/>
+</div>
+
+<div class="view-panel">
+    <div id="playlists"></div>
+    <div id="videos"></div>
+</div>
+
+<script>
+    const fetchPLaylists = document.getElementById("fetch-playlists");
+    const playlistsFolder = document.getElementById("playlists_folder");
+
+    async function handlePlaylist(id, title) {
+        const request = await fetch("/videos/videos" +
+            "?playlists_folder=" + encodeURIComponent(playlistsFolder.value) +
+            "&playlist_id=" + encodeURIComponent(id) +
+            "&playlist_title=" + encodeURIComponent(title)
+        );
+        const response = await request.json();
+        let videosInnerHtml = '';
+        for (const video of response.videos) {
+            videosInnerHtml += `<div class="video">
+                <a href="https://www.youtube.com/watch?v=${video.contentDetails.videoId}"
+                    target="_blank" class="video-img">
+                    <img src="${video.snippet.thumbnails.default.url}"/>
+                </a>
+                <div class="video-data">
+                    <div class="video-title">${video.snippet.title}</div>
+                    <div class="video-publisher">${video.snippet.videoOwnerChannelTitle}</div>
+                    <div class="video-date">${video.contentDetails.videoPublishedAt}</div>
+                    <div class="video-date">${new Date(video.contentDetails.videoPublishedAt).getDate()}</div>
+                </div>
+            </div>`;
+        }
+        document.getElementById("videos").innerHTML = videosInnerHtml;
+    }
+
+    fetchPLaylists.addEventListener("click", async function() {
+        const request = await fetch("/videos/playlists?playlists_folder=" + encodeURIComponent(playlistsFolder.value));
+        const response = await request.json();
+
+        response.playlists.sort((a, b) => a.snippet.localized.title.localeCompare(b.snippet.localized.title));
+
+        let playlistsInnerHtml = '';
+        for (const playlist of response.playlists) {
+            playlistsInnerHtml += `<div class="playlist">
+                <a href="https://www.youtube.com/playlist?list=${playlist.id}" target="_blank">(Y)</a>
+                <div class="playlist-title"
+                    data-id="${playlist.id}"
+                    data-title="${playlist.snippet.localized.title}"
+                >${playlist.snippet.localized.title}</div>
+                <div class="count">${playlist.contentDetails.itemCount} videos</div>
+            </div>`;
+        }
+        document.getElementById("playlists").innerHTML = playlistsInnerHtml;
+        const playlistTitles = document.getElementsByClassName("playlist-title");
+        for (const playlistTitle of playlistTitles) {
+            playlistTitle.addEventListener("click", async function () {
+                const id = this.getAttribute("data-id");
+                const title = this.getAttribute("data-title");
+                await handlePlaylist(id, title);
+            });
+        }
+    });
+</script>
+</body>
+</html>
